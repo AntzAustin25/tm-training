@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TM Infinity">
+<meta name="theme-color" content="#0a0a0a">
+<title>TM Infinity Training</title>
+<style>
+:root {
+  --bg: #0a0a0a;
+  --surface: #161616;
+  --surface2: #1e1e1e;
+  --border: #2a2a2a;
+  --text: #e8e8e8;
+  --text2: #9a9a9a;
+  --accent: #ff6b1a;
+  --accent-dim: #ff6b1a33;
+  --green: #34d399;
+  --green-dim: #34d39922;
+  --blue: #60a5fa;
+  --blue-dim: #60a5fa22;
+  --yellow: #fbbf24;
+  --yellow-dim: #fbbf2422;
+  --red: #f87171;
+  --red-dim: #f8717122;
+  --tab-h: 64px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:var(--bg); color:var(--text); line-height:1.5; overflow-x:hidden; padding-bottom:calc(var(--tab-h) + var(--safe-b) + 8px); }
+
+/* ── Tab Bar ── */
+.tab-bar { position:fixed; bottom:0; left:0; right:0; height:calc(var(--tab-h) + var(--safe-b)); background:var(--surface); border-top:1px solid var(--border); display:flex; padding-bottom:var(--safe-b); z-index:100; }
+.tab { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; color:var(--text2); font-size:10px; font-weight:600; letter-spacing:.3px; cursor:pointer; transition:color .15s; }
+.tab.active { color:var(--accent); }
+.tab svg { width:22px; height:22px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+
+/* ── Pages ── */
+.page { display:none; padding:16px 16px 24px; max-width:600px; margin:0 auto; }
+.page.active { display:block; }
+
+/* ── Header ── */
+.page-header { padding:12px 0 16px; }
+.page-title { font-size:22px; font-weight:700; }
+.page-sub { font-size:13px; color:var(--text2); margin-top:2px; }
+
+/* ── Week Selector ── */
+.week-selector { display:flex; gap:6px; margin-bottom:16px; overflow-x:auto; padding-bottom:4px; -webkit-overflow-scrolling:touch; }
+.week-selector::-webkit-scrollbar { display:none; }
+.week-btn { flex-shrink:0; padding:8px 14px; border-radius:8px; background:var(--surface); border:1px solid var(--border); color:var(--text2); font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; transition:all .15s; }
+.week-btn.active { background:var(--accent); color:#000; border-color:var(--accent); }
+.week-btn.current { border-color:var(--accent); }
+
+/* ── Day Cards ── */
+.day-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; margin-bottom:10px; overflow:hidden; transition:border-color .15s; }
+.day-card.today { border-color:var(--accent); }
+.day-head { display:flex; align-items:center; padding:14px 16px; cursor:pointer; gap:12px; }
+.day-check { width:24px; height:24px; border-radius:6px; border:2px solid var(--border); display:flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer; transition:all .15s; }
+.day-check.checked { background:var(--green); border-color:var(--green); }
+.day-check svg { width:14px; height:14px; stroke:#000; stroke-width:3; fill:none; opacity:0; transition:opacity .15s; }
+.day-check.checked svg { opacity:1; }
+.day-info { flex:1; min-width:0; }
+.day-name { font-size:14px; font-weight:600; }
+.day-name .today-badge { font-size:10px; background:var(--accent); color:#000; padding:1px 6px; border-radius:4px; margin-left:8px; font-weight:700; vertical-align:middle; }
+.day-type { font-size:11px; font-weight:600; padding:2px 8px; border-radius:4px; display:inline-block; margin-top:3px; }
+.type-easy { background:var(--green-dim); color:var(--green); }
+.type-long { background:var(--blue-dim); color:var(--blue); }
+.type-tempo { background:var(--yellow-dim); color:var(--yellow); }
+.type-interval { background:var(--red-dim); color:var(--red); }
+.type-strength { background:var(--accent-dim); color:var(--accent); }
+.type-rest { background:var(--surface2); color:var(--text2); }
+.type-race { background:var(--accent); color:#000; }
+.day-dur { font-size:12px; color:var(--text2); flex-shrink:0; }
+.day-expand { color:var(--text2); flex-shrink:0; transition:transform .2s; }
+.day-expand.open { transform:rotate(180deg); }
+.day-body { padding:0 16px 14px; font-size:13px; color:var(--text2); line-height:1.6; display:none; }
+.day-body.open { display:block; }
+.day-body p { margin-bottom:8px; }
+.day-body .note { font-size:12px; color:var(--text2); opacity:.7; font-style:italic; }
+
+/* ── Week Summary ── */
+.week-summary { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-bottom:16px; }
+.week-summary .title { font-size:15px; font-weight:700; margin-bottom:4px; }
+.week-summary .meta { font-size:12px; color:var(--text2); }
+.week-summary .rw { font-size:12px; color:var(--accent); margin-top:4px; }
+.progress-bar { height:4px; background:var(--surface2); border-radius:2px; margin-top:10px; overflow:hidden; }
+.progress-fill { height:100%; background:var(--green); border-radius:2px; transition:width .3s; }
+
+/* ── Mobility / Protocol Cards ── */
+.exercise-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; margin-bottom:12px; overflow:hidden; }
+.exercise-num { font-size:11px; font-weight:700; color:var(--accent); padding:14px 16px 0; letter-spacing:.5px; }
+.exercise-name { font-size:16px; font-weight:700; padding:4px 16px 0; }
+.exercise-meta { font-size:12px; color:var(--text2); padding:2px 16px 0; }
+.exercise-cues { padding:10px 16px 14px; }
+.exercise-cues li { font-size:13px; color:var(--text2); line-height:1.5; margin-bottom:4px; margin-left:16px; }
+
+/* ── Section Headers ── */
+.section-head { font-size:17px; font-weight:700; margin:24px 0 12px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+
+/* ── Info Tables ── */
+.info-table { width:100%; border-collapse:collapse; margin:12px 0; font-size:13px; }
+.info-table th { text-align:left; padding:10px; background:var(--surface); border-bottom:1px solid var(--border); color:var(--text2); font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; }
+.info-table td { padding:10px; border-bottom:1px solid var(--border); }
+
+/* ── Gear Cards ── */
+.gear-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-bottom:10px; }
+.gear-cat { font-size:10px; color:var(--accent); text-transform:uppercase; letter-spacing:.5px; font-weight:700; }
+.gear-name { font-size:15px; font-weight:700; margin:2px 0; }
+.gear-desc { font-size:13px; color:var(--text2); line-height:1.5; }
+
+/* ── Callouts ── */
+.callout { padding:12px 14px; border-radius:8px; margin:12px 0; font-size:13px; line-height:1.5; }
+.callout-o { background:var(--accent-dim); border-left:3px solid var(--accent); }
+.callout-b { background:var(--blue-dim); border-left:3px solid var(--blue); }
+.callout-r { background:var(--red-dim); border-left:3px solid var(--red); }
+.callout-g { background:var(--green-dim); border-left:3px solid var(--green); }
+.callout strong { color:var(--text); }
+
+/* ── Countdown ── */
+.countdown { text-align:center; padding:20px 0 8px; }
+.countdown .num { font-size:48px; font-weight:800; color:var(--accent); line-height:1; }
+.countdown .label { font-size:13px; color:var(--text2); margin-top:4px; }
+</style>
+</head>
+<body>
+
+<!-- ════════ PAGES ════════ -->
+<div id="page-plan" class="page active"></div>
+<div id="page-mobility" class="page"></div>
+<div id="page-race" class="page"></div>
+<div id="page-info" class="page"></div>
+
+<!-- ════════ TAB BAR ════════ -->
+<div class="tab-bar">
+  <div class="tab active" data-page="plan">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>
+    Plan
+  </div>
+  <div class="tab" data-page="mobility">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><path d="M10 22V18L7 15V11L10 8H14L17 11V15L14 18V22"/></svg>
+    Mobility
+  </div>
+  <div class="tab" data-page="race">
+    <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+    Race Day
+  </div>
+  <div class="tab" data-page="info">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+    Info
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+// DATA
+// ══════════════════════════════════════
+const RACE_DATE = new Date(2026, 4, 23); // May 23 2026
+
+const WEEKS = [
+  {
+    id: 'w0', label: 'Day 0', name: 'Kickoff', dates: 'Apr 12-12', miles: '~0 mi run',
+    focus: 'Start the program. Get the knee-supporting glute/stability work going.',
+    rw: '4 min run / 1 min walk',
+    days: [
+      { dow: 6, name: 'Sunday', date: '4/12', type: 'strength', typeLabel: 'Lower Body', dur: '45 min',
+        detail: 'Your routine. Add glute bridges 3x15, clamshells 3x15 each side, single-leg balance 3x30 sec each. Keep squat volume moderate given knee pain.',
+        note: 'Day one. Get the knee-supporting glute/stability work started immediately. Do the full mobility routine after.' }
+    ]
+  },
+  {
+    id: 'w1', label: 'Week 1', name: 'Foundation', dates: 'Apr 13-19', miles: '~10-11 mi',
+    focus: 'Establish routine with 3 run days + long run. Introduce light tempo. Every easy run in Zone 2.',
+    rw: '4 min run / 1 min walk',
+    days: [
+      { dow: 0, name: 'Monday', date: '4/13', type: 'easy', typeLabel: 'Easy Run', dur: '~2.2 mi',
+        detail: '25 min run/walk at Zone 2. Focus on staying conversational. Target 155 spm cadence.',
+        note: 'If HR drifts above 128, walk until it drops.' },
+      { dow: 1, name: 'Tuesday', date: '4/14', type: 'strength', typeLabel: 'Upper Body', dur: '45 min',
+        detail: 'Your routine + grip work: dead hangs 3x max hold, farmer carries 3x40 yd, plate pinches 3x20 sec.' },
+      { dow: 2, name: 'Wednesday', date: '4/15', type: 'tempo', typeLabel: 'Tempo Run', dur: '~2.0 mi',
+        detail: '5 min warmup walk, then 20 min: alternate 3 min at Zone 3 (comfortably hard) / 2 min at Zone 2 (easy). 5 min cooldown walk.',
+        note: 'First taste of harder effort. Stay in Zone 3, not Zone 4.' },
+      { dow: 3, name: 'Thursday', date: '4/16', type: 'strength', typeLabel: 'Upper Body', dur: '45 min',
+        detail: 'Your routine + grip work.' },
+      { dow: 4, name: 'Friday', date: '4/17', type: 'easy', typeLabel: 'Easy Run', dur: '~1.7 mi',
+        detail: '20 min run/walk at Zone 2. Very easy. If your legs feel trashed, swap for 15 min mobility only.' },
+      { dow: 5, name: 'Saturday', date: '4/18', type: 'long', typeLabel: 'Long Run', dur: '~3.5 mi',
+        detail: '40 min run/walk at Zone 2. Mixed terrain if available. Practice fueling: bring water, try a gel or chews at 20 min.',
+        note: 'First real long run of the plan. Pace does not matter. Time on feet matters.' },
+      { dow: 6, name: 'Sunday', date: '4/19', type: 'strength', typeLabel: 'Lower Body', dur: '45 min',
+        detail: 'Your routine + glute/stability work.' }
+    ]
+  },
+  {
+    id: 'w2', label: 'Week 2', name: 'Volume Increase', dates: 'Apr 20-26', miles: '~13-14 mi',
+    focus: 'Push long run to 55 min. Introduce hill work.',
+    rw: '5 min run / 1 min walk',
+    days: [
+      { dow: 0, name: 'Monday', date: '4/20', type: 'easy', typeLabel: 'Easy Run', dur: '~2.7 mi',
+        detail: '30 min run/walk at Zone 2. Push cadence toward 155-158 spm.' },
+      { dow: 1, name: 'Tuesday', date: '4/21', type: 'strength', typeLabel: 'Upper Body', dur: '45 min',
+        detail: 'Your routine + grip work. Increase dead hang hold times by 5-10 sec.' },
+      { dow: 2, name: 'Wednesday', date: '4/22', type: 'tempo', typeLabel: 'Hill Repeats', dur: '~2.5 mi',
+        detail: '5 min warmup walk/jog. Find a moderate hill (4-6% grade). 6 x 90 sec uphill at Zone 3-4 effort, walk/jog down to recover. 5 min cooldown.',
+        note: 'Hill work builds leg strength and prepares for course terrain without the joint impact of speed work.' },
+      { dow: 3, name: 'Thursday', date: '4/23', type: 'strength', typeLabel: 'Upper Body', dur: '45 min',
+        detail: 'Your routine + grip work.' },
+      { dow: 4, name: 'Friday', date: '4/24', type: 'easy', typeLabel: 'Easy Run', dur: '~2.2 mi',
+        detail: '25 min run/walk at Zone 2. Keep it genuinely easy.' },
+      { dow: 5, name: 'Saturday', date: '4/25', type: 'long', typeLabel: 'Long Run', dur: '~4.8 mi',
+        detail: '55 min run/walk at Zone 2. Trail preferred. Practice full fueling protocol: water every 15 min, gel/chews at 20 and 40 min.',
+        note: 'First run approaching 5 miles. Stay disciplined on pace. Walk breaks are part of the plan.' },
+      { dow: 6, name: 'Sunday', date: '4/26', type: 'strength', typeLabel: 'Lower Body', dur: '45 min',
+        detail: 'Your routine + glute/stability work. Add lateral lunges 3x10 each side.' }
+    ]
+  },
+  {
+    id: 'w3', label: 'Week 3', name: 'Build & Absorb', dates: 'Apr 27 - May 3', miles: '~15-16 mi',
+    focus: 'Continue building. Long run hits 65 min. Friday is rest to absorb 3 weeks of stress.',
+    rw: '5 min run / 1 min walk',
+    days: [
+      { dow: 0, name: 'Monday', date: '4/27', type: 'easy', typeLabel: 'Easy Run', dur: '~2.7 mi',
+        detail: '30 min run/walk at Zone 2.' },
+      { dow: 1, name: 'Tuesday', date: '4/28', type: 'strength', typeLabel: 'Upper Body', dur: '45 min',
+        detail: 'Your routine + grip work.' },
+      { dow: 2, name: 'Wednesday', date: '4/29', type: 'tempo', typeLabel: 'Tempo Run', dur: '~2.5 mi',
+        detail: '5 min warmup. 20 min steady at Zone 3 (not intervals, just hold a steady comfortably hard pace). 5 min cooldown.',
+        note: 'Sustained tempo effort. You should finish feeling like you could have done 5 more minutes.' },
+      { dow: 3, name: 'Thursday', date: '4/30', type: 'strength', typeLabel: 'Upper Body', dur: '45 min',
+        detail: 'Your routine + grip work.' },
+      { dow: 4, name: 'Friday', date: '5/1', type: 'rest', typeLabel: 'Rest / Mobility', dur: '15 min',
+        detail: 'Full mobility session only (15 min). Foam roll + stretch. No running.',
+        note: 'Your body needs this absorption window after 3 weeks of building.' },
+      { dow: 5, name: 'Saturday', date: '5/2', type: 'long', typeLabel: 'Long Run', dur: '~5.5 mi',
+        detail: '65 min run/walk at Zone 2 on trails/mixed terrain. Full fueling practice: water every 15 min, 30-60g carbs per hour.',
+        note: 'Longest run so far. Stay patient. Walk breaks are mandatory, not optional.' },
+      { dow: 6, name: 'Sunday', date: '5/3', type: 'strength', typeLabel: 'Lower Body', dur: '45 min',
+        detail: 'Your routine + glute/stability work.' }
+    ]
+  },
+  {
+    id: 'w4', label: 'Week 4', name: 'Peak Volume', dates: 'May 4-10', miles: '~17-19 mi',
+    focus: 'Biggest training week. Long run hits 80 min. Peak volume before taper.',
+    rw: '6 min run / 1 min walk',
+    days: [
+      { dow: 0, name: 'Monday', date: '5/4', type: 'easy', typeLabel: 'Easy Run', dur: '~2.7 mi',
+        detail: '30 min run/walk at Zone 2. Target 160 spm cadence from here forward.' },
+      { dow: 1, name: 'Tuesday', date: '5/5', type: 'strength', typeLabel: 'Upper Body', dur: '45 min',
+        detail: 'Your routine + grip work. Push farmer carry weight up if possible.' },
+      { dow: 2, name: 'Wednesday', date: '5/6', type: 'interval', typeLabel: 'Intervals', dur: '~3.5 mi',
+        detail: '5 min warmup. 5 x 3 min at Zone 3-4 with 2 min easy jog/walk between. 5 min cooldown.',
+        note: 'Hardest run session in the plan. Push into Zone 4 on the last 2 reps if you feel good.' },
+      { dow: 3, name: 'Thursday', date: '5/7', type: 'strength', typeLabel: 'Upper Body', dur: '45 min',
+        detail: 'Your routine + grip work.' },
+      { dow: 4, name: 'Friday', date: '5/8', type: 'easy', typeLabel: 'Easy Run', dur: '~2.2 mi',
+        detail: '25 min run/walk at Zone 2. Shake out the legs before the big Saturday.' },
+      { dow: 5, name: 'Saturday', date: '5/9', type: 'long', typeLabel: 'Long Run', dur: '~7.0 mi',
+        detail: '80 min run/walk at Zone 2 on trails/mixed terrain. Full race-day fueling rehearsal: water every 15 min, 30-60g carbs per hour. Practice your exact race-day nutrition plan.',
+        note: 'Most important single session in the plan. If you can do 80 min moving at Zone 2 with run/walk intervals, you have the engine to survive 8 hours.' },
+      { dow: 6, name: 'Sunday', date: '5/10', type: 'strength', typeLabel: 'Lower Body', dur: '45 min',
+        detail: 'Your routine. Pull back squat intensity ~10%. Recovery is priority entering taper.' }
+    ]
+  },
+  {
+    id: 'w5', label: 'Week 5', name: 'Taper', dates: 'May 11-17', miles: '~13-14 mi',
+    focus: 'Reduce volume 25-30% from peak. Maintain tempo intensity. Let your body supercompensate.',
+    rw: '6 min run / 1 min walk',
+    days: [
+      { dow: 0, name: 'Monday', date: '5/11', type: 'easy', typeLabel: 'Easy Run', dur: '~2.2 mi',
+        detail: '25 min run/walk at Zone 2.' },
+      { dow: 1, name: 'Tuesday', date: '5/12', type: 'strength', typeLabel: 'Upper Body', dur: '40 min',
+        detail: 'Your routine (moderate intensity) + grip work.' },
+      { dow: 2, name: 'Wednesday', date: '5/13', type: 'tempo', typeLabel: 'Tempo Run', dur: '~2.5 mi',
+        detail: '5 min warmup. 20 min steady at Zone 3. 5 min cooldown.',
+        note: 'Keep the stimulus sharp but not exhausting. Finish feeling like you could do more.' },
+      { dow: 3, name: 'Thursday', date: '5/14', type: 'strength', typeLabel: 'Upper Body', dur: '40 min',
+        detail: 'Your routine (moderate intensity) + grip work.' },
+      { dow: 4, name: 'Friday', date: '5/15', type: 'easy', typeLabel: 'Easy Run', dur: '~1.7 mi',
+        detail: '20 min easy run/walk at Zone 2.' },
+      { dow: 5, name: 'Saturday', date: '5/16', type: 'long', typeLabel: 'Long Run', dur: '~5.2 mi',
+        detail: '60 min run/walk at Zone 2. Last long run before race. Continue fueling practice. Run on terrain similar to race day if possible.' },
+      { dow: 6, name: 'Sunday', date: '5/17', type: 'strength', typeLabel: 'Lower Body', dur: '35 min',
+        detail: 'Your routine at 70% intensity. Mobility and activation focus. No heavy squats.' }
+    ]
+  },
+  {
+    id: 'w6', label: 'Week 6', name: 'Race Week', dates: 'May 18-23', miles: '~5-6 mi',
+    focus: 'Stay sharp without accumulating fatigue. Trust the work.',
+    rw: 'Whatever feels natural',
+    days: [
+      { dow: 0, name: 'Monday', date: '5/18', type: 'easy', typeLabel: 'Easy Run', dur: '~1.7 mi',
+        detail: '20 min easy run/walk at Zone 2. Short shakeout.' },
+      { dow: 1, name: 'Tuesday', date: '5/19', type: 'strength', typeLabel: 'Upper Body', dur: '30 min',
+        detail: 'Light session. 60% of normal weight. Keep grip work: dead hangs only, 2x max hold.' },
+      { dow: 2, name: 'Wednesday', date: '5/20', type: 'easy', typeLabel: 'Easy Run', dur: '~1.3 mi',
+        detail: '15 min easy jog. Include 4 x 20-sec strides (quick turnover, not sprinting) to keep legs responsive.',
+        note: 'Last real run before race day.' },
+      { dow: 3, name: 'Thursday', date: '5/21', type: 'rest', typeLabel: 'Rest / Mobility', dur: '15 min',
+        detail: 'Mobility only. Foam roll everything. Light stretching. Prep gear and race-day nutrition.' },
+      { dow: 4, name: 'Friday', date: '5/22', type: 'rest', typeLabel: 'Rest', dur: '--',
+        detail: 'Complete rest. 15 min walk if restless. Hydrate well. Eat carb-heavy meals. Early to bed.',
+        note: 'Lay out all gear tonight. Nothing new on race day.' },
+      { dow: 5, name: 'Saturday', date: '5/23', type: 'race', typeLabel: 'RACE DAY', dur: '8 hours',
+        detail: 'Tough Mudder Infinity. May 23, 2026. See Race Day tab for full strategy.',
+        note: 'This is it. Trust the work. Start slow. Fuel early. One loop at a time.' }
+    ]
+  }
+];
+
+const MOBILITY = [
+  { name:'Foam Roll Quads', sets:'2 min total', cues:['Lie face down with the roller under your thighs.','Slowly roll from just above the knee to the hip crease.','Pause on tender spots for 5-10 sec.','Keep your core engaged so you control the pressure.'] },
+  { name:'Foam Roll IT Band', sets:'2 min each side', cues:['Lie on your side with the roller under your outer thigh.','Roll from just above the knee to the hip.','Stack or stagger your legs to control pressure.','This will be uncomfortable. Breathe through it.'] },
+  { name:'Foam Roll Calves', sets:'1 min each side', cues:['Sit with the roller under one calf.','Cross the other leg on top for more pressure.','Roll from the ankle to just below the knee.','Rotate your leg slightly to hit the inner and outer calf.'] },
+  { name:'Foam Roll Glutes', sets:'1 min each side', cues:['Sit on the roller with one ankle crossed over the opposite knee.','Lean into the crossed side.','Roll in small circles over the glute.','A lacrosse ball works better here if you have one.'] },
+  { name:'Hip Flexor Stretch', sets:'30 sec each side', cues:['Half-kneeling position: one knee on the ground, other foot forward.','Keep your torso upright. Do not lean forward.','Gently push your hips forward until you feel a stretch in the front of the back hip.','Squeeze the glute on the kneeling side to deepen the stretch.'] },
+  { name:'Hamstring Stretch', sets:'30 sec each side', cues:['Stand and place one heel on a low surface (step, curb, bench).','Keep that leg straight but not locked.','Hinge at the hips and lean your chest toward the raised leg.','Stop when you feel a stretch behind the thigh. Do not round your back.'] },
+  { name:'Quad Stretch', sets:'30 sec each side', cues:['Stand on one leg (hold a wall for balance if needed).','Grab the top of the opposite foot and pull your heel toward your glute.','Keep your knees close together.','Stand tall. Do not arch your lower back.'] },
+  { name:'Ankle Circles', sets:'10 each direction per foot', cues:['Lift one foot off the ground.','Draw slow, controlled circles with your toes.','10 clockwise, then 10 counterclockwise.','Focus on full range of motion, not speed.'] }
+];
+
+const KNEE_PROTOCOL = [
+  { name:'Glute Bridges', sets:'3 x 15 reps', cues:['Lie on your back, knees bent, feet flat on the floor hip-width apart.','Drive through your heels to lift your hips until your body forms a straight line from shoulders to knees.','Squeeze your glutes hard at the top for 2 sec.','Lower slowly. Do not let your lower back arch.','Goal: activate the glutes so they support knee tracking during runs.'] },
+  { name:'Clamshells', sets:'3 x 15 each side', cues:['Lie on your side with knees bent at 45 degrees, feet stacked.','Keep your feet together and open the top knee like a clamshell.','Lift only as high as you can without rotating your hips backward.','Slow and controlled. You should feel this in the outer hip, not the lower back.','Add a resistance band above the knees to increase difficulty.'] },
+  { name:'Monster Walks', sets:'3 x 15 steps each direction', cues:['Place a resistance band around your ankles (or just above knees).','Stand in a quarter squat with feet hip-width apart.','Step laterally, leading with one foot, then following with the other.','Keep constant tension on the band. Do not let your knees cave inward.','15 steps one direction, then 15 back.'] },
+  { name:'Single-Leg Balance', sets:'3 x 30 sec each leg', cues:['Stand on one foot with a slight bend in the standing knee.','Keep your hips level. Do not let the free hip drop.','Fix your gaze on a point ahead for stability.','If this is easy, close your eyes or stand on a pillow.','Goal: train the stabilizer muscles that protect your knee on uneven terrain.'] },
+  { name:'Terminal Knee Extensions', sets:'3 x 15 each side', cues:['Anchor a resistance band at knee height behind you.','Loop it behind one knee. Step forward to create tension.','Start with a slight bend in that knee.','Straighten the knee fully against the band resistance, squeezing the quad.','Slow and controlled. This targets the VMO (inner quad) which stabilizes the kneecap.'] }
+];
+
+// ══════════════════════════════════════
+// STATE
+// ══════════════════════════════════════
+let currentWeek = 0;
+let checks = {};
+try { checks = JSON.parse(localStorage.getItem('tm_checks') || '{}'); } catch(e) {}
+
+function saveChecks() { try { localStorage.setItem('tm_checks', JSON.stringify(checks)); } catch(e) {} }
+
+function getToday() {
+  const d = new Date();
+  return `${d.getMonth()+1}/${d.getDate()}`;
+}
+
+function daysUntilRace() {
+  const now = new Date(); now.setHours(0,0,0,0);
+  const diff = RACE_DATE - now;
+  return Math.max(0, Math.ceil(diff / 86400000));
+}
+
+function findCurrentWeek() {
+  const today = getToday();
+  for (let i = 0; i < WEEKS.length; i++) {
+    for (const day of WEEKS[i].days) {
+      if (day.date === today) return i;
+    }
+  }
+  // Default: find closest future week
+  const now = new Date();
+  for (let i = 0; i < WEEKS.length; i++) {
+    const last = WEEKS[i].days[WEEKS[i].days.length - 1];
+    const [m, d] = last.date.split('/').map(Number);
+    const dayDate = new Date(2026, m - 1, d);
+    if (dayDate >= now) return i;
+  }
+  return WEEKS.length - 1;
+}
+
+// ══════════════════════════════════════
+// RENDER: PLAN PAGE
+// ══════════════════════════════════════
+function renderPlan() {
+  const today = getToday();
+  const w = WEEKS[currentWeek];
+  const completed = w.days.filter(d => checks[d.date]).length;
+
+  let html = `
+    <div class="page-header">
+      <div class="page-title">Training Plan</div>
+      <div class="page-sub">${daysUntilRace()} days until race</div>
+    </div>
+    <div class="week-selector">${WEEKS.map((wk, i) =>
+      `<div class="week-btn${i === currentWeek ? ' active' : ''}${i === findCurrentWeek() ? ' current' : ''}" onclick="switchWeek(${i})">${wk.label}</div>`
+    ).join('')}</div>
+    <div class="week-summary">
+      <div class="title">${w.name}</div>
+      <div class="meta">${w.dates} &middot; ${w.miles} &middot; Run/Walk: ${w.rw}</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:6px">${w.focus}</div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${w.days.length ? (completed/w.days.length*100) : 0}%"></div></div>
+      <div style="font-size:11px;color:var(--text2);margin-top:4px">${completed}/${w.days.length} completed</div>
+    </div>`;
+
+  for (const day of w.days) {
+    const isToday = day.date === today;
+    const checked = !!checks[day.date];
+    html += `
+    <div class="day-card${isToday ? ' today' : ''}">
+      <div class="day-head" onclick="toggleDay('${day.date}')">
+        <div class="day-check${checked ? ' checked' : ''}" onclick="event.stopPropagation();toggleCheck('${day.date}')">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="day-info">
+          <div class="day-name">${day.name}${isToday ? '<span class="today-badge">TODAY</span>' : ''}</div>
+          <span class="day-type type-${day.type}">${day.typeLabel}</span>
+        </div>
+        <div class="day-dur">${day.dur}</div>
+        <div class="day-expand" id="arrow-${day.date}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>
+      <div class="day-body" id="body-${day.date}">
+        <p>${day.detail}</p>
+        ${day.note ? `<p class="note">${day.note}</p>` : ''}
+      </div>
+    </div>`;
+  }
+
+  document.getElementById('page-plan').innerHTML = html;
+  // Auto-expand today
+  const todayBody = document.getElementById('body-' + today);
+  if (todayBody && currentWeek === findCurrentWeek()) {
+    todayBody.classList.add('open');
+    const arrow = document.getElementById('arrow-' + today);
+    if (arrow) arrow.classList.add('open');
+  }
+}
+
+function switchWeek(i) { currentWeek = i; renderPlan(); }
+
+function toggleDay(date) {
+  const body = document.getElementById('body-' + date);
+  const arrow = document.getElementById('arrow-' + date);
+  if (body) body.classList.toggle('open');
+  if (arrow) arrow.classList.toggle('open');
+}
+
+function toggleCheck(date) {
+  checks[date] = !checks[date];
+  saveChecks();
+  renderPlan();
+}
+
+// ══════════════════════════════════════
+// RENDER: MOBILITY PAGE
+// ══════════════════════════════════════
+function renderMobility() {
+  let html = `<div class="page-header"><div class="page-title">Mobility & Recovery</div><div class="page-sub">Do this after every workout, 10-15 min</div></div>`;
+
+  html += `<div class="section-head">Daily Mobility Routine</div>`;
+  MOBILITY.forEach((ex, i) => {
+    html += `<div class="exercise-card">
+      <div class="exercise-num">EXERCISE ${i+1} OF ${MOBILITY.length}</div>
+      <div class="exercise-name">${ex.name}</div>
+      <div class="exercise-meta">${ex.sets}</div>
+      <ul class="exercise-cues">${ex.cues.map(c => `<li>${c}</li>`).join('')}</ul>
+    </div>`;
+  });
+
+  html += `<div class="section-head">Knee Protocol</div>
+    <div class="callout callout-r"><strong>When to do this:</strong> After every lower body day and after every long run (Saturday). These exercises support knee tracking and reduce pain from increased mileage.</div>`;
+
+  KNEE_PROTOCOL.forEach((ex, i) => {
+    html += `<div class="exercise-card">
+      <div class="exercise-num">EXERCISE ${i+1} OF ${KNEE_PROTOCOL.length}</div>
+      <div class="exercise-name">${ex.name}</div>
+      <div class="exercise-meta">${ex.sets}</div>
+      <ul class="exercise-cues">${ex.cues.map(c => `<li>${c}</li>`).join('')}</ul>
+    </div>`;
+  });
+
+  html += `<div class="callout callout-r" style="margin-top:16px"><strong>Pain Rules</strong> Dull soreness after runs is normal. Sharp pain, swelling, or pain that worsens during a run is a stop sign. If you hit sharp knee pain: stop the run, ice 15 min, take the next run day off. If it persists 3+ days, see a PT.</div>`;
+
+  document.getElementById('page-mobility').innerHTML = html;
+}
+
+// ══════════════════════════════════════
+// RENDER: RACE DAY PAGE
+// ══════════════════════════════════════
+function renderRace() {
+  let html = `<div class="page-header"><div class="page-title">Race Day Strategy</div><div class="page-sub">Saturday, May 23, 2026</div></div>`;
+
+  html += `<div class="countdown"><div class="num">${daysUntilRace()}</div><div class="label">days until race</div></div>`;
+
+  html += `<div class="section-head">Event Structure</div>
+    <div class="callout callout-o">Start line opens <strong>7:30 AM</strong>. First lap must be 15K. After that, choose 5K or 15K loops. At <strong>12:30 PM</strong>, 15K splits close and remaining laps become 5K only. Start line closes at <strong>3:30 PM</strong> with one extra hour to finish active lap. Official finisher: 20K minimum.</div>`;
+
+  html += `<div class="section-head">Pacing Plan</div>
+    <table class="info-table">
+      <tr><th>Phase</th><th>Strategy</th></tr>
+      <tr><td style="white-space:nowrap;font-weight:600">Lap 1<br><span style="font-weight:400;font-size:11px;color:var(--text2)">7:30-~10:30</span></td><td>Run/walk at Zone 2. Do not go out fast. Target ~3 hours. Walk uphills. Fuel every 20 min. Conserve grip on obstacles.</td></tr>
+      <tr><td style="white-space:nowrap;font-weight:600">Laps 2-3<br><span style="font-weight:400;font-size:11px;color:var(--text2)">~10:30-12:30</span></td><td>If strong, take another 15K before 12:30 cutoff. Otherwise 5K loops. 5 min run / 1-2 min walk. Fuel at every pit stop. Change socks if wet.</td></tr>
+      <tr><td style="white-space:nowrap;font-weight:600">Afternoon<br><span style="font-weight:400;font-size:11px;color:var(--text2)">12:30-3:30</span></td><td>5K loops only. Higher obstacle density. Shorten to 3-4 min run / 1-2 min walk. Fuel every loop. One loop at a time.</td></tr>
+      <tr><td style="white-space:nowrap;font-weight:600">Final Loop<br><span style="font-weight:400;font-size:11px;color:var(--text2)">Before 3:30</span></td><td>Must start before 3:30. You have until 4:30 to finish. Leave it all out there.</td></tr>
+    </table>`;
+
+  html += `<div class="section-head">Fueling Protocol</div>
+    <table class="info-table">
+      <tr><th>Item</th><th>Target</th><th>Timing</th></tr>
+      <tr><td>Carbs</td><td>60-90g/hr</td><td>Every 20-30 min</td></tr>
+      <tr><td>Water</td><td>400-800 mL/hr</td><td>Sip + pit stops</td></tr>
+      <tr><td>Sodium</td><td>300-700 mg/hr</td><td>Electrolyte tabs</td></tr>
+      <tr><td>Real food</td><td>As tolerated</td><td>Hours 4-8</td></tr>
+    </table>
+    <div class="callout callout-b"><strong>Start eating at 45-60 minutes in.</strong> Do not wait until you feel hungry. Set a 25-min timer on your watch. By the time you feel hungry you are already behind.</div>`;
+
+  html += `<div class="section-head">Pit Stop Checklist</div>
+    <div class="callout callout-o">Target 3-5 min per stop max. Refill hydration. Eat gel or real food. Change socks once around hour 4. Reapply Body Glide. Everything pre-staged before the race.</div>`;
+
+  html += `<div class="section-head">Obstacle Strategy</div>
+    <p style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:12px">Grip-intensive obstacles (Funky Monkey, Kong Infinity, Blockness Monster, Leap of Faith) are the most likely failure points on later loops. On early loops, conserve grip with efficient technique. On later loops, consider skipping attempts that risk hand injury.</p>
+    <div class="callout callout-r"><strong>15K vs 5K loops:</strong> The 5K has higher obstacle density per mile and includes the hardest obstacles (Everest, Mudderhorn). For maximum distance, prioritize 15K loops before the 12:30 PM cutoff.</div>`;
+
+  html += `<div class="section-head">Pre-Race Morning</div>
+    <p style="font-size:13px;color:var(--text2);line-height:1.6">Eat 3 hours before start. 600-800 cal, mostly carbs. Something you have eaten before a long run. Oatmeal + banana + PB, or bagel + jam + protein shake. 16-20 oz water with electrolytes in the 2 hours before start.</p>`;
+
+  document.getElementById('page-race').innerHTML = html;
+}
+
+// ══════════════════════════════════════
+// RENDER: INFO PAGE
+// ══════════════════════════════════════
+function renderInfo() {
+  let html = `<div class="page-header"><div class="page-title">Reference</div><div class="page-sub">HR zones, gear, and key rules</div></div>`;
+
+  html += `<div class="section-head">Heart Rate Zones</div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:8px">Based on max HR of 183 bpm (March 23 run)</p>
+    <table class="info-table">
+      <tr><th>Zone</th><th>HR</th><th>Feel</th></tr>
+      <tr><td>Z1 Recovery</td><td>92-110</td><td>Very easy, barely exercise</td></tr>
+      <tr><td style="color:var(--green)">Z2 Aerobic</td><td style="color:var(--green)">110-128</td><td>Conversational. 80% of runs here.</td></tr>
+      <tr><td style="color:var(--yellow)">Z3 Tempo</td><td style="color:var(--yellow)">128-146</td><td>Comfortably hard. Short phrases.</td></tr>
+      <tr><td style="color:var(--red)">Z4 Threshold</td><td style="color:var(--red)">146-165</td><td>Hard. Can barely talk.</td></tr>
+      <tr><td>Z5 Max</td><td>165-183</td><td>All-out. Not used in this plan.</td></tr>
+    </table>`;
+
+  html += `<div class="section-head">Cadence Targets</div>
+    <table class="info-table">
+      <tr><th>Weeks</th><th>Target</th></tr>
+      <tr><td>Weeks 1-2</td><td>155 spm</td></tr>
+      <tr><td>Weeks 3-6</td><td>160 spm</td></tr>
+    </table>
+    <p style="font-size:12px;color:var(--text2);margin-top:8px">Current baseline: 148 spm. Increasing cadence 5% reduces knee impact forces ~20%. Use a metronome app or music at the right BPM.</p>`;
+
+  html += `<div class="section-head">Gear Checklist</div>`;
+
+  const gear = [
+    { cat:'SHOES (PRIORITY #1)', name:'Trail Running Shoes', desc:'HOKA Challenger 8, Altra Lone Peak 9, or Saucony Peregrine 15. Buy now and train in them. Nothing new on race day.' },
+    { cat:'SHOES', name:'Road Shoes for Daily Training', desc:'Separate pair for weekday road runs. Rotating 2 pairs reduces injury risk.' },
+    { cat:'SOCKS', name:'Synthetic or Merino Blend', desc:'No cotton. Darn Tough or Injinji toe socks. Buy 4-5 pairs.' },
+    { cat:'HYDRATION', name:'Hydration Vest', desc:'For runs over 60 min + race day. Salomon ADV Skin or CamelBak Ultra Pro. 1.5-2L capacity.' },
+    { cat:'ANTI-CHAFE', name:'Body Glide Original + Foot Glide', desc:'Apply to thighs, underarms, feet, waistband. Bring extra for pit stops.' },
+    { cat:'GPS WATCH', name:'HR + GPS, 10+ hour battery', desc:'COROS Pace 3 (~$199) or Garmin Forerunner 265. Phone will not survive 8 hours.' },
+    { cat:'FUELING', name:'Energy Gels + Electrolytes', desc:'Test 2-3 brands now: Maurten, SIS, Gu. Electrolyte tablets: Nuun or LMNT. Need 8-12 gels for race day.' },
+    { cat:'RACE DAY EXTRAS', name:'Spare Socks + Compression', desc:'Dry socks + calf compression sleeves at the pit. Change socks at hour 4.' }
+  ];
+
+  gear.forEach(g => {
+    html += `<div class="gear-card"><div class="gear-cat">${g.cat}</div><div class="gear-name">${g.name}</div><div class="gear-desc">${g.desc}</div></div>`;
+  });
+
+  html += `<div class="section-head">Grip Training (Add to Upper Body Days)</div>
+    <div class="callout callout-o"><strong>Non-negotiable.</strong> Grip endurance is the #1 limiter on later Infinity loops. Add to end of each upper body day: dead hangs 3x max hold, farmer carries 3x40 yd, plate pinches 3x20 sec. ~10 min total.</div>`;
+
+  html += `<div class="section-head">Mistakes to Avoid</div>
+    <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:10px"><strong style="color:var(--text)">Running every easy day too hard.</strong> Zone 2 (110-128 bpm) builds the sustained engine. That means slowing down on easy days. If it feels embarrassingly slow, you are in the right zone.</p>
+    <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:10px"><strong style="color:var(--text)">Skipping run/walk.</strong> Structured run/walk is the standard for multi-hour events. Practice in training.</p>
+    <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:10px"><strong style="color:var(--text)">Going out too fast on Lap 1.</strong> Adrenaline will make 9:00/mi feel easy. Resist. Lap 1 pace should be Zone 2.</p>
+    <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:10px"><strong style="color:var(--text)">Skipping pit stops.</strong> Crash comes at hour 5-6. The pit stop is mandatory maintenance.</p>
+    <p style="font-size:13px;color:var(--text2);line-height:1.7"><strong style="color:var(--text)">Wearing untested gear.</strong> Nothing new on race day. Every piece should have 2+ training runs on it.</p>`;
+
+  document.getElementById('page-info').innerHTML = html;
+}
+
+// ══════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('page-' + tab.dataset.page).classList.add('active');
+  });
+});
+
+// ══════════════════════════════════════
+// INIT
+// ══════════════════════════════════════
+currentWeek = findCurrentWeek();
+renderPlan();
+renderMobility();
+renderRace();
+renderInfo();
+</script>
+</body>
+</html>
